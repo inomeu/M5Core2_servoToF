@@ -6,44 +6,46 @@ VL53L0X sensor; //VL53L0X　"sensor"として操作することを宣言して�
 
 //servo
 #define SERVO_PIN 26
-#define SERVO_CH 0
-#define PMW_HZ 50
-#define PMW_BIT 16
-#define MAX 7800
-#define MIN 1700
+//PortB
+//#define SERVO_CH 0
+//#define PMW_HZ 50
+//#define PMW_BIT 16
+//#define MAX 7800
+//#define MIN 1700
+#define SERVO_MIN_ANGLE 0
+#define SERVO_MAX_ANGLE 90
 
 void setup() {
   M5.begin();
-  Wire.begin();// I2C通信を開始する
-  sensor.init();
-  sensor.startContinuous();  //  連続測定を開始
-  M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setCursor(10, 10);
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.setTextSize(4);
+  Serial.begin(115200);
+  Wire.begin();
+  sensor.setAddress(0x29);
+  sensor.setTimeout(500);
+  if (!sensor.init()) {
+    Serial.println("Failed to detect and initialize sensor!");
+    while (1) {}
+  }
+  sensor.startContinuous();
 
   //servo
-  ledcSetup(SERVO_CH, PMW_HZ, PMW_BIT);
-  ledcAttachPin(SERVO_PIN, SERVO_CH);
-  M5.Lcd.setBrightness(200);
-  M5.Lcd.setTextSize(2);
-  M5.Lcd.setTextFont(7);
-  M5.Lcd.setTextColor(GREEN);
+  ledcSetup(0, 50, 16);
+  ledcAttachPin(SERVO_PIN, 0);
+//  M5.Lcd.setBrightness(200);
+//  M5.Lcd.setTextSize(2);
+//  M5.Lcd.setTextFont(7);
+//  M5.Lcd.setTextColor(GREEN);
 }
 
 
 void loop() {
-  int distance = sensor.readRangeContinuousMillimeters(); //センサデータの取得(mm単位)
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.print(distance);
-  M5.Lcd.print("  [mm]  ");
-
-  if(distance < 200){
-    ledcWrite(0,13);
-    delay(1000);
-  }else{
-    ledcWrite(0,0);
-    delay(1000);
+  int distance=0;
+  distance = sensor.readRangeContinuousMillimeters();
+  Serial.print(distance);
+  if (sensor.timeoutOccurred()) {
+    Serial.print(" TIMEOUT");
   }
-  
+  Serial.println();
+
+  int angle = map(distance, 5, 50, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE);
+    ledcWrite(0, angle);
 }
